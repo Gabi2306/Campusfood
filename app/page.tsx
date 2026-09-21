@@ -1,94 +1,206 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import CafeApp from '@/components/cafe-app'
-import { Coffee } from 'lucide-react'
+import { Coffee, Check } from 'lucide-react'
+
+type AuthView = 'login' | 'register'
 
 export default function Page() {
-  const [user, setUser] = useState<{ email: string; role: 'admin' | 'student'; name: string } | null>(null)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const { data: session, status } = useSession()
+
+  const [view, setView]           = useState<AuthView>('login')
+  const [animating, setAnimating] = useState(false)
+  const [visible, setVisible]     = useState<AuthView>('login')
+
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [name, setName]           = useState('')
+  const [confirm, setConfirm]     = useState('')
+  const [error, setError]         = useState('')
+  const [success, setSuccess]     = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  const resetForm = () => {
+    setEmail(''); setPassword(''); setName(''); setConfirm('')
+    setError(''); setSuccess('')
+  }
+
+  const switchView = (v: AuthView) => {
+    if (v === view || animating) return
+    setAnimating(true)
+    resetForm()
+    // fade out → swap → fade in
+    setTimeout(() => { setVisible(v); setView(v) }, 220)
+    setTimeout(() => setAnimating(false), 440)
+  }
+
+  // Restringe la altura animada de la card
+  useEffect(() => {
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'none'
+    }
+  }, [])
+
+  // ── Login ────────────────────────────────────────────────────
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
-
-    setTimeout(() => {
-      setIsLoading(false)
-      
-      const cleanEmail = email.trim().toLowerCase()
-
-      // Validacion correo
-      if (!cleanEmail.endsWith('@campusucc.ecu.co')) {
-        setError('Solo se permiten correos institucionales (@campusucc.ecu.co)')
-        return
-      }
-
-      if (password.length < 6) {
-        setError('La contraseña debe tener al menos 6 caracteres')
-        return
-      }
-
-      // rol para prueba
-      const role = cleanEmail.startsWith('admin') ? 'admin' : 'student'
-      
-      const namePart = cleanEmail.split('@')[0].replace('.', ' ')
-      const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1)
-      
-      setUser({ email: cleanEmail, role, name: formattedName })
-    }, 800)
+    const result = await signIn('credentials', {
+      email:    email.trim().toLowerCase(),
+      password,
+      redirect: false,
+    })
+    setIsLoading(false)
+    if (result?.error) setError('Correo o contraseña incorrectos. Verifica tus datos.')
   }
 
-  if (user) {
+  // ── Registro ─────────────────────────────────────────────────
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
+    setIsLoading(true)
+    const res  = await fetch('/api/auth/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, email, password }),
+    })
+    const data = await res.json()
+    setIsLoading(false)
+    if (!res.ok) { setError(data.error ?? 'Ocurrió un error al registrarte.'); return }
+    setSuccess('¡Cuenta creada! Ya puedes iniciar sesión.')
+    setTimeout(() => switchView('login'), 2000)
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card" style={{ textAlign: 'center', color: 'var(--muted)' }}>
+          Cargando sesión...
+        </div>
+      </div>
+    )
+  }
+
+  if (session?.user) {
     return (
       <CafeApp
-        role={user.role}
-        userName={user.name}
-        email={user.email}
-        onLogout={() => setUser(null)}
+        role={session.user.role as 'admin' | 'student'}
+        userName={session.user.name}
+        email={session.user.email}
+        onLogout={() => signOut({ callbackUrl: '/' })}
       />
     )
   }
 
   return (
     <div className="auth-shell">
-      <div className="auth-card">
+      <div className="auth-card" ref={cardRef}>
+
+        {/* Logo */}
         <div className="auth-mark"><Coffee size={24} /></div>
-        <h1>Iniciar sesión</h1>
-        <p className="auth-copy">Ingresa con tu correo institucional para acceder a Café Campus.</p>
-        
-        <form onSubmit={handleLogin}>
-          <label>
-            Correo electrónico
-            <input 
-              type="email" 
-              placeholder="estudiante@campusucc.ecu.co" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-          </label>
-          <label>
-            Contraseña
-            <input 
-              type="password" 
-              placeholder="••••••••" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
-          </label>
-          
-          {error && <p className="form-error">{error}</p>}
-          
-          <button type="submit" className="primary-button auth-submit" disabled={isLoading}>
-            {isLoading ? 'Verificando...' : 'Entrar a mi cuenta'}
+
+        {/* Tabs */}
+        <div className="auth-tabs">
+          <button
+            className={view === 'login' ? 'auth-tab-active' : ''}
+            onClick={() => switchView('login')}
+          >
+            Iniciar sesión
           </button>
-        </form>
-        <p className="auth-note">Usa "admin@campusucc.ecu.co" para probar la vista de Administrador.</p>
+          <button
+            className={view === 'register' ? 'auth-tab-active' : ''}
+            onClick={() => switchView('register')}
+          >
+            Crear cuenta
+          </button>
+          {/* Píldora deslizante */}
+          <span className={`auth-tab-slider ${view === 'register' ? 'right' : 'left'}`} />
+        </div>
+
+        {/* Contenido animado */}
+        <div className={`auth-body ${animating ? 'auth-body--out' : 'auth-body--in'}`}>
+
+          {/* ── Login ── */}
+          {visible === 'login' && (
+            <>
+              <p className="auth-copy">Ingresa con tu correo institucional para acceder a Café Campus.</p>
+              <form onSubmit={handleLogin}>
+                <label>
+                  Correo electrónico
+                  <input type="email" placeholder="estudiante@campusucc.ecu.co"
+                    value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </label>
+                <label>
+                  Contraseña
+                  <input type="password" placeholder="••••••••"
+                    value={password} onChange={(e) => setPassword(e.target.value)} required />
+                </label>
+                {error && <p className="form-error">{error}</p>}
+                <button type="submit" className="primary-button auth-submit" disabled={isLoading}>
+                  {isLoading ? 'Verificando...' : 'Entrar a mi cuenta'}
+                </button>
+              </form>
+              <p className="auth-note">
+                ¿No tienes cuenta?{' '}
+                <button className="auth-link" onClick={() => switchView('register')}>Regístrate aquí</button>
+              </p>
+            </>
+          )}
+
+          {/* ── Registro ── */}
+          {visible === 'register' && (
+            <>
+              <p className="auth-copy">Crea tu cuenta con tu correo institucional.</p>
+
+              {success ? (
+                <div className="auth-success">
+                  <span className="auth-success-icon"><Check size={20} /></span>
+                  <p>{success}</p>
+                  <span className="auth-success-sub">Redirigiendo al inicio de sesión...</span>
+                </div>
+              ) : (
+                <form onSubmit={handleRegister}>
+                  <label>
+                    Nombre completo
+                    <input type="text" placeholder="Ej. María García"
+                      value={name} onChange={(e) => setName(e.target.value)} required />
+                  </label>
+                  <label>
+                    Correo institucional
+                    <input type="email" placeholder="estudiante@campusucc.ecu.co"
+                      value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  </label>
+                  <label>
+                    Contraseña
+                    <input type="password" placeholder="Mínimo 6 caracteres"
+                      value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  </label>
+                  <label>
+                    Confirmar contraseña
+                    <input type="password" placeholder="Repite tu contraseña"
+                      value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+                  </label>
+                  {error && <p className="form-error">{error}</p>}
+                  <button type="submit" className="primary-button auth-submit" disabled={isLoading}>
+                    {isLoading ? 'Creando cuenta...' : 'Crear mi cuenta'}
+                  </button>
+                </form>
+              )}
+
+              <p className="auth-note">
+                ¿Ya tienes cuenta?{' '}
+                <button className="auth-link" onClick={() => switchView('login')}>Inicia sesión</button>
+              </p>
+            </>
+          )}
+
+        </div>
       </div>
     </div>
   )

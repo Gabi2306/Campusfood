@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("student") // "admin" | "student"
+  balance   Int      @default(48500)     // saldo en pesos
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model MenuItem {
+  id          Int         @id @default(autoincrement())
+  name        String
+  category    String      // "Almuerzos" | "Bebidas" | "Snacks"
+  price       Int
+  iconKey     String      @default("sandwich") // clave para mapear icono en frontend
+  available   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  status      String      @default("pending")  // "pending" | "preparing" | "ready" | "delivered" | "cancelled"
+  total       Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  menuItemId Int
+  quantity   Int
+  unitPrice  Int
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+}

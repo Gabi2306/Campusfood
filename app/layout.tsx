@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import AuthSessionProvider from '@/components/session-provider'
 
 export const metadata: Metadata = {
   title: 'Cafe Campus | Pedidos universitarios',
@@ -13,5 +14,11 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es"><body>{children}</body></html>
+  return (
+    <html lang="es">
+      <body>
+        <AuthSessionProvider>{children}</AuthSessionProvider>
+      </body>
+    </html>
+  )
 }

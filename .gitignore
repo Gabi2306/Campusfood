@@ -1,6 +1,18 @@
-.env*.local
+# env
+.env
+.env.*
+!.env.example
 
+# deps & build
 node_modules/
 .next/
+
+# OS
 .DS_Store
+
+# TypeScript
 next-env.d.ts
+
+# Base de datos local
+prisma/dev.db
+prisma/dev.db-journal
