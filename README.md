@@ -6,6 +6,10 @@ Proyecto: sistema de pedidos para una cafetería universitaria usando Next.js, N
 
 Campusfood es una aplicación educativa que permite a estudiantes y administradores gestionar menús y realizar pedidos. Incluye autenticación por credenciales (correo institucional) y un esquema de datos manejado con Prisma.
 
+## Flujo de pagos
+
+Desde el carrito, el estudiante puede revisar productos, cantidades y total, y pagar mediante Stripe Checkout en modo de pruebas. Los pedidos se guardan únicamente al recibir y verificar el webhook de pago completado. La recogida anticipada es opcional; si se selecciona, la hora debe ser hoy, entre las 8:00 a. m. y las 6:00 p. m., y al menos 30 minutos después de la hora actual de Bogotá.
+
 ## Requisitos
 
 - Node.js 18 o 20 (LTS)
@@ -20,11 +24,38 @@ Crear un archivo `.env` en la raíz con las siguientes variables (no lo subas al
 DATABASE_URL="file:./dev.db"
 NEXTAUTH_SECRET="<secreto-de-32-bytes-en-hex>"
 NEXTAUTH_URL="http://localhost:3000"
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
 - `DATABASE_URL`: URL de la base de datos (aquí usamos SQLite en desarrollo).
 - `NEXTAUTH_SECRET`: secreto para firmar tokens de Auth.js / NextAuth; generar con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 - `NEXTAUTH_URL`: URL base de la app en desarrollo.
+- `STRIPE_SECRET_KEY`: clave secreta de prueba de Stripe (`sk_test_...`). Nunca uses ni publiques una clave `sk_live_`.
+- `STRIPE_WEBHOOK_SECRET`: secreto del endpoint/listener Stripe CLI (`whsec_...`) usado para verificar webhooks.
+
+### Probar Stripe localmente
+
+1. Copia la clave secreta de prueba desde **Stripe Dashboard → Developers → API keys** a `STRIPE_SECRET_KEY`.
+2. Aplica la migración de pagos y genera el cliente Prisma:
+
+   ```bash
+   npm run db:migrate
+   npm run db:generate
+   ```
+
+3. Instala e inicia Stripe CLI, autentícala con tu cuenta y reenvía los eventos a la app:
+
+   ```bash
+   stripe login
+   stripe listen --forward-to localhost:3000/api/stripe/webhook
+   ```
+
+   Copia el secreto `whsec_...` que muestra el comando a `STRIPE_WEBHOOK_SECRET` y reinicia Next.js.
+4. Inicia la app con `npm run dev`, agrega productos al carrito y pulsa **Pagar con Stripe**.
+5. Usa la tarjeta de prueba `4242 4242 4242 4242`, una fecha futura y cualquier CVC. No uses datos de tarjeta reales.
+
+El endpoint verifica la firma y procesa `checkout.session.completed`, `checkout.session.expired` y los eventos de pago asíncrono. Los precios del menú están almacenados en pesos enteros y se convierten a la unidad menor de COP que requiere Stripe. Stripe debe poder entregar el webhook para que el pedido aparezca registrado; la página de retorno consulta el estado mientras llega la confirmación. Las horas de recogida se muestran también en la vista administrativa de pedidos.
 
 Nota: un ejemplo sin valores puede añadirse como `.env.example` y commitearse.
 

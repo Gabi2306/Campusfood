@@ -16,6 +16,7 @@ model User {
   balance   Int      @default(48500)     // saldo en pesos
   createdAt DateTime @default(now())
   orders    Order[]
+  paymentAttempts PaymentAttempt[]
 }
 
 model MenuItem {
@@ -34,10 +35,28 @@ model Order {
   userId      Int
   status      String      @default("pending")  // "pending" | "preparing" | "ready" | "delivered" | "cancelled"
   total       Int
+  pickupAt    DateTime?
+  stripeSessionId String?     @unique
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   user        User        @relation(fields: [userId], references: [id])
   items       OrderItem[]
+}
+
+model PaymentAttempt {
+  id              String    @id @default(cuid())
+  userId          Int
+  stripeSessionId String?   @unique
+  itemsJson       String
+  total           Int
+  pickupAt        DateTime?
+  status          String    @default("creating")
+  orderId         Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
 }
 
 model OrderItem {

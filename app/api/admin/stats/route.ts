@@ -61,6 +61,7 @@ export async function GET() {
     total:     o.total,
     status:    o.status,
     createdAt: o.createdAt,
+    pickupAt:  o.pickupAt,
     items:     o.items.map((i) => ({
       name:     i.menuItem.name,
       quantity: i.quantity,
