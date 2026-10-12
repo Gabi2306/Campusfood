@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { isStaff } from '@/lib/roles'
 import { reconcileStripeCheckout } from '@/lib/stripe-orders'
 
-// GET /api/orders — pedidos del usuario actual (o todos si es admin)
+// GET /api/orders — pedidos del usuario actual (o todos si es personal: admin / cocina)
 export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const isAdmin = session.user.role === 'admin'
+  const isAdmin = isStaff(session.user.role)
   let reconciliationFailures = 0
   if (isAdmin) {
     const reconciliationStart = new Date(Date.now() - 24 * 60 * 60 * 1000)

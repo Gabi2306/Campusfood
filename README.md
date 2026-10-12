@@ -10,6 +10,50 @@ Campusfood es una aplicación educativa que permite a estudiantes y administrado
 
 Desde el carrito, el estudiante puede revisar productos, cantidades y total, y pagar mediante Stripe Checkout en modo de pruebas. Los pedidos se guardan únicamente al recibir y verificar el webhook de pago completado. La recogida anticipada es opcional; si se selecciona, la hora debe ser hoy, entre las 8:00 a. m. y las 6:00 p. m., y al menos 30 minutos después de la hora actual de Bogotá.
 
+## Sprint: HU-04, HU-06 y HU-09
+
+### HU-09 · Histórico de datos para la proyección
+- Tabla `DemandHistory`: una fila por día (hora de Bogotá) y producto, con unidades pedidas, anticipadas, canceladas, producidas y sobrantes.
+- Se consolida sola a partir de los pedidos (`lib/demand-history.ts`): hoy y ayer se recalculan siempre; los días cerrados, una vez.
+- `GET /api/history?from&to&category` (admin y cocina) · `&format=csv` para exportar · `POST /api/history` recalcula todo (admin).
+- `POST /api/history/production`: cocina registra lo producido y lo sobrante del día (sirve para medir el desperdicio).
+- El seed carga 8 semanas de datos de demostración (`source = "seed"`); los pedidos reales los reemplazan día por día.
+
+### HU-06 · Proyecciones diarias para cocina
+- `GET /api/projections?date=` (hoy o mañana), en `lib/projections.ts`.
+- Por producto y por tipo de menú: promedio ponderado del mismo día de la semana (8 semanas) × tendencia de los últimos 7 días, nunca por debajo de los pedidos ya pagados, más un margen pequeño que se quita si el sobrante reciente supera el 15 %.
+- Nuevo rol **cocina** (`cocina@campusucc.ecu.co` / `cocina123`): ve Producción, Pedidos e Histórico. Puede avanzar estados, pero solo el admin cancela.
+
+### HU-04 · Aviso push / SMS cuando el pedido está listo
+- Al marcar un pedido como **listo** se avisa al estudiante por tres canales: en la app (campana + aviso emergente), push (Web Push con VAPID, `public/sw.js`) y SMS (Twilio) si registró su celular.
+- El estudiante lo configura en **Mi cuenta** (toca su avatar). El celular también se puede dar al registrarse.
+- En iPhone, el push solo funciona si la app está agregada a la pantalla de inicio (iOS 16.4+). La app incluye manifest e íconos para instalarla.
+
+### Pagos (pasarela simulada)
+- En el checkout el estudiante elige **Tarjeta**, **Billetera digital** o **Saldo institucional** y pulsa **Pagar**.
+- Va a la pasarela de demostración `/pago/[id]` (sin cobros reales). Tarjeta de prueba que aprueba: `4242 4242 4242 4242`; que rechaza: `4000 0000 0000 0002`. Billetera: cualquier celular que empiece por 3 y clave de 4 dígitos.
+- El saldo institucional se descuenta del usuario y se reembolsa si el pedido se cancela.
+- Para volver a Stripe: `PAYMENT_PROVIDER="stripe"` en `.env` (solo tarjeta).
+
+### Menú del día y stock (cocina y admin)
+- Sección **Menú** para cocina y administración: agregar, editar, ocultar o eliminar platos y fijar las unidades disponibles hoy (`stock`; vacío = sin límite).
+- Botones rápidos en cada producto: +/− unidades, Agotar, Sin límite, Ocultar/Mostrar.
+- El stock se descuenta al confirmarse el pago y se devuelve si el pedido se cancela. El pago se bloquea si se pide más de lo disponible.
+- Los estudiantes ven "Quedan N" (con 10 o menos) y "Agotado". El menú se refresca cada 30 s.
+- Un producto que ya tiene pedidos no se borra (se perdería el historial): se oculta del menú.
+
+### Interfaz mobile first
+- Barra de navegación inferior, carrito flotante, hojas inferiores para cuenta y formularios, tablas que se vuelven tarjetas, campos de 16 px (evita el zoom de iOS) y soporte de notch (`safe-area`).
+- Desde 1024 px se conserva el diseño de escritorio (barra superior para estudiantes, menú lateral para el personal).
+
+### Pasos después de actualizar
+```bash
+npm install
+npm run db:migrate     # aplica 20261007000000_projections_history_notifications
+npm run db:seed        # crea el usuario de cocina y el histórico de demostración
+npm run push:keys      # copia las claves a VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY en .env
+```
+
 ## Requisitos
 
 - Node.js 18 o 20 (LTS)

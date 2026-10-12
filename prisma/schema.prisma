@@ -12,11 +12,15 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      String   @default("student") // "admin" | "student"
+  role      String   @default("student") // "admin" | "kitchen" | "student"
   balance   Int      @default(48500)     // saldo en pesos
+  phone     String?                      // celular en formato E.164 (+573001234567) para SMS
+  smsOptIn  Boolean  @default(false)     // el estudiante acepta recibir SMS
   createdAt DateTime @default(now())
   orders    Order[]
-  paymentAttempts PaymentAttempt[]
+  paymentAttempts   PaymentAttempt[]
+  pushSubscriptions PushSubscription[]
+  notifications     Notification[]
 }
 
 model MenuItem {
@@ -26,6 +30,7 @@ model MenuItem {
   price       Int
   iconKey     String      @default("sandwich") // clave para mapear icono en frontend
   available   Boolean     @default(true)
+  stock       Int?        // unidades disponibles hoy; null = sin límite (lo gestiona cocina)
   createdAt   DateTime    @default(now())
   orderItems  OrderItem[]
 }
@@ -36,7 +41,10 @@ model Order {
   status      String      @default("pending")  // "pending" | "preparing" | "ready" | "delivered" | "cancelled"
   total       Int
   pickupAt    DateTime?
-  stripeSessionId String?     @unique
+  stripeSessionId String?     @unique // referencia del pago (Stripe "cs_…" o pasarela simulada "sim_…")
+  paymentMethod   String?     // "card" | "wallet" | "balance"
+  readyAt     DateTime?   // momento en que cocina marcó el pedido como listo
+  notifiedAt  DateTime?   // momento en que se notificó al estudiante (HU-04)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   user        User        @relation(fields: [userId], references: [id])
@@ -50,6 +58,7 @@ model PaymentAttempt {
   itemsJson       String
   total           Int
   pickupAt        DateTime?
+  paymentMethod   String?   // "card" | "wallet" | "balance"
   status          String    @default("creating")
   orderId         Int?
   createdAt       DateTime  @default(now())
@@ -67,4 +76,57 @@ model OrderItem {
   unitPrice  Int
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+}
+
+// ── HU-04: notificaciones ──────────────────────────────────────────
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  orderId   Int?
+  type      String    // "order_ready"
+  title     String
+  body      String
+  channels  String    @default("inapp") // canales usados, separados por coma: inapp,push,sms
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+// ── HU-09: histórico diario de demanda por producto ────────────────
+// Una fila por día (zona America/Bogota) y producto. Se desnormaliza el
+// nombre y la categoría para que el histórico sobreviva a cambios del menú.
+model DemandHistory {
+  id                Int      @id @default(autoincrement())
+  date              String   // YYYY-MM-DD (America/Bogota)
+  weekday           Int      // 0 = domingo … 6 = sábado
+  menuItemId        Int
+  itemName          String
+  category          String   // tipo de menú: "Almuerzos" | "Bebidas" | "Snacks"
+  ordersCount       Int      @default(0) // pedidos distintos que incluyeron el producto
+  quantityOrdered   Int      @default(0) // unidades pedidas (sin cancelados)
+  quantityAdvance   Int      @default(0) // unidades de pedidos anticipados
+  quantityCancelled Int      @default(0)
+  quantityProduced  Int?     // registrado por cocina
+  quantityWasted    Int?     // sobrante / desperdicio registrado por cocina
+  source            String   @default("orders") // "orders" | "seed" | "import"
+  updatedAt         DateTime @updatedAt
+
+  @@unique([date, menuItemId])
+  @@index([weekday])
+  @@index([category, date])
 }

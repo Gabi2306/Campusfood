@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
 
   const sessionId = req.nextUrl.searchParams.get('sessionId')
-  if (!sessionId || !sessionId.startsWith('cs_')) {
+  if (!sessionId || !(sessionId.startsWith('cs_') || sessionId.startsWith('sim_'))) {
     return NextResponse.json({ error: 'Sesión de pago inválida.' }, { status: 400 })
   }
 
@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
   })
   if (!attempt) return NextResponse.json({ error: 'Pago no encontrado.' }, { status: 404 })
 
-  if (attempt.status === 'pending') {
+  // Solo los pagos de Stripe se concilian con su API; los simulados se confirman en /api/payments.
+  if (attempt.status === 'pending' && sessionId.startsWith('cs_')) {
     try {
       await reconcileStripeCheckout(sessionId)
       attempt = await prisma.paymentAttempt.findFirst({

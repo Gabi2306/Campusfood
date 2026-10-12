@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyOrderReady } from '@/lib/notifications'
+import { isStaff } from '@/lib/roles'
 
 const VALID_STATUSES = ['pending', 'preparing', 'ready', 'delivered', 'cancelled']
 const CANCELLATION_CUTOFF_MS = 30 * 60 * 1000
@@ -33,10 +35,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!order) return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 })
 
   const isAdmin   = session.user.role === 'admin'
+  const staff     = isStaff(session.user.role)
   const isOwner   = order.userId === Number(session.user.id)
   const isFinal = ['delivered', 'cancelled'].includes(order.status)
 
-  if (!isAdmin && !isOwner) {
+  if (!staff && !isOwner) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
@@ -44,8 +47,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Este pedido ya finalizó y no admite más cambios.' }, { status: 409 })
   }
 
-  if (!isAdmin && status !== 'cancelled') {
+  if (!staff && status !== 'cancelled') {
     return NextResponse.json({ error: 'Solo puedes cancelar tu pedido' }, { status: 403 })
+  }
+
+  if (status === 'cancelled' && staff && !isAdmin) {
+    return NextResponse.json({ error: 'Solo un administrador puede cancelar pedidos.' }, { status: 403 })
   }
 
   if (status === 'cancelled') {
@@ -78,14 +85,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (cancellation.count === 0) {
       return NextResponse.json({ error: 'El pedido ya cambió o ya no se puede cancelar.' }, { status: 409 })
     }
+
+    // Reembolsa el saldo institucional si el pedido se pagó con él.
+    if (order.paymentMethod === 'balance') {
+      await prisma.user.update({ where: { id: order.userId }, data: { balance: { increment: order.total } } })
+    }
+
+    // Devuelve al stock del día las unidades del pedido cancelado.
+    const cancelledItems = await prisma.orderItem.findMany({ where: { orderId } })
+    await prisma.$transaction(cancelledItems.map((item) => prisma.menuItem.updateMany({
+      where: { id: item.menuItemId, stock: { not: null } },
+      data: { stock: { increment: item.quantity } },
+    })))
   } else {
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Solo un administrador puede cambiar el estado del pedido.' }, { status: 403 })
+    if (!staff) {
+      return NextResponse.json({ error: 'Solo el personal de la cafetería puede cambiar el estado del pedido.' }, { status: 403 })
     }
     await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: { status, ...(status === 'ready' ? { readyAt: new Date() } : {}) },
     })
+
+    // HU-04: avisar al estudiante por push / SMS / app. Un fallo de envío no
+    // debe impedir el cambio de estado.
+    if (status === 'ready') {
+      try {
+        await notifyOrderReady(orderId)
+      } catch (error) {
+        console.error(`No se pudo notificar el pedido ${orderId}:`, error)
+      }
+    }
   }
 
   const updated = await prisma.order.findUniqueOrThrow({

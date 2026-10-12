@@ -1,8 +1,7 @@
 import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 import { getStripeClient } from '@/lib/stripe'
-
-type StoredOrderItem = { menuItemId: number; quantity: number; unitPrice: number }
+import { fulfillPaymentAttempt } from '@/lib/payments'
 
 export async function recordPaidOrder(checkout: Stripe.Checkout.Session) {
   if (checkout.livemode) throw new Error('Live Stripe payments are not accepted by this test-only integration.')
@@ -23,27 +22,7 @@ export async function recordPaidOrder(checkout: Stripe.Checkout.Session) {
       throw new Error('Stripe payment does not match the pending checkout.')
     }
 
-    const orderItems = JSON.parse(attempt.itemsJson) as StoredOrderItem[]
-    const order = await tx.order.create({
-      data: {
-        userId: attempt.userId,
-        total: attempt.total,
-        pickupAt: attempt.pickupAt,
-        stripeSessionId: checkout.id,
-        status: 'pending',
-        items: {
-          create: orderItems.map((item) => ({
-            menuItemId: item.menuItemId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-          })),
-        },
-      },
-    })
-    await tx.paymentAttempt.update({
-      where: { id: attempt.id },
-      data: { status: 'paid', orderId: order.id },
-    })
+    await fulfillPaymentAttempt(tx, attempt, checkout.id)
   })
 }
 

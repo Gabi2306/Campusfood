@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { normalizePhone } from '@/lib/phone'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { name, email, password } = body as { name: string; email: string; password: string }
+  const { name, email, password, phone: rawPhone } = body as { name: string; email: string; password: string; phone?: string }
 
   // Validaciones básicas
   if (!name?.trim() || !email?.trim() || !password) {
@@ -27,6 +28,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Celular opcional para notificaciones por SMS (HU-04)
+  let phone: string | null = null
+  if (typeof rawPhone === 'string' && rawPhone.trim()) {
+    phone = normalizePhone(rawPhone)
+    if (!phone) {
+      return NextResponse.json({ error: 'El celular no es válido. Ejemplo: 300 123 4567.' }, { status: 400 })
+    }
+  }
+
   try {
     // Verificar que el correo no esté registrado ya
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } })
@@ -46,6 +56,8 @@ export async function POST(req: NextRequest) {
         password: hashed,
         role:     'student',
         balance:  48500,
+        phone,
+        smsOptIn: phone !== null,
       },
       select: { id: true, name: true, email: true, role: true },
     })

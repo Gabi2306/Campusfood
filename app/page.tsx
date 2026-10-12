@@ -18,6 +18,7 @@ export default function Page() {
   const [password, setPassword]   = useState('')
   const [name, setName]           = useState('')
   const [confirm, setConfirm]     = useState('')
+  const [phone, setPhone]         = useState('')
   const [error, setError]         = useState('')
   const [success, setSuccess]     = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -25,7 +26,7 @@ export default function Page() {
   const cardRef = useRef<HTMLDivElement>(null)
 
   const resetForm = () => {
-    setEmail(''); setPassword(''); setName(''); setConfirm('')
+    setEmail(''); setPassword(''); setName(''); setConfirm(''); setPhone('')
     setError(''); setSuccess('')
   }
 
@@ -68,7 +69,7 @@ export default function Page() {
     const res  = await fetch('/api/auth/register', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, email, password }),
+      body:    JSON.stringify({ name, email, password, phone }),
     })
     const data = await res.json()
     setIsLoading(false)
@@ -90,7 +91,7 @@ export default function Page() {
   if (session?.user) {
     return (
       <CafeApp
-        role={session.user.role as 'admin' | 'student'}
+        role={session.user.role as 'admin' | 'kitchen' | 'student'}
         userName={session.user.name}
         email={session.user.email}
         onLogout={() => signOut({ callbackUrl: '/' })}
@@ -133,7 +134,7 @@ export default function Page() {
               <form onSubmit={handleLogin}>
                 <label>
                   Correo electrónico
-                  <input type="email" placeholder="estudiante@campusucc.ecu.co"
+                  <input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" placeholder="estudiante@campusucc.ecu.co"
                     value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </label>
                 <label>
@@ -173,8 +174,13 @@ export default function Page() {
                   </label>
                   <label>
                     Correo institucional
-                    <input type="email" placeholder="estudiante@campusucc.ecu.co"
+                    <input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" placeholder="estudiante@campusucc.ecu.co"
                       value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  </label>
+                  <label>
+                    Celular <span className="label-hint">(opcional, para avisos por SMS)</span>
+                    <input type="tel" inputMode="tel" autoComplete="tel" placeholder="300 123 4567"
+                      value={phone} onChange={(e) => setPhone(e.target.value)} />
                   </label>
                   <label>
                     Contraseña
