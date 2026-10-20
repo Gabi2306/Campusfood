@@ -1,23 +1,22 @@
-node_modules
-.next
-dev.db
-.env
-/.env.local
-/.env.development# env
+# Dependencias y build
+node_modules/
+.next/
+
+# Variables de entorno (claves): nunca se suben
 .env
 .env.*
 !.env.example
 
-# deps & build
-node_modules/
-.next/
+# Base de datos local
+dev.db
+prisma/dev.db
+prisma/dev.db-journal
 
-# OS
-.DS_Store
+# Esquema PostgreSQL generado al desplegar
+prisma/postgres/
 
 # TypeScript
 next-env.d.ts
 
-# Base de datos local
-prisma/dev.db
-prisma/dev.db-journal
+# Sistema operativo
+.DS_Store

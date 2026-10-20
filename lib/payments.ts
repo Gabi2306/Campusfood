@@ -1,8 +1,9 @@
 // Pagos (HU-03): medios de pago y creación del pedido cuando el pago se aprueba.
 //
 // Proveedor configurable con PAYMENT_PROVIDER:
-//  - "simulated" (por defecto): pasarela de demostración propia en /pago/[id], sin cobros reales.
-//  - "stripe": Stripe Checkout en modo de pruebas (requiere STRIPE_SECRET_KEY y webhook).
+//  - "stripe" (por defecto): Stripe Checkout en modo de pruebas (requiere STRIPE_SECRET_KEY).
+//  - "simulated": pasarela de demostración propia en /pago/[id], sin cobros reales.
+// El saldo institucional siempre se descuenta dentro de la app (no pasa por Stripe).
 import type { Prisma } from '@prisma/client'
 
 export const PAYMENT_METHODS = {
@@ -19,7 +20,7 @@ export const isPaymentMethod = (value: unknown): value is PaymentMethod =>
 export const PAYMENT_WINDOW_MS = 15 * 60 * 1000
 
 export function getPaymentProvider(): 'simulated' | 'stripe' {
-  return process.env.PAYMENT_PROVIDER === 'stripe' ? 'stripe' : 'simulated'
+  return process.env.PAYMENT_PROVIDER === 'simulated' ? 'simulated' : 'stripe'
 }
 
 type StoredOrderItem = { menuItemId: number; quantity: number; unitPrice: number }

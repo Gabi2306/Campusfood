@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { createPickupDateTime, isValidPickupTime } from '@/lib/pickup-time'
 import { prisma } from '@/lib/prisma'
-import { getStripeClient } from '@/lib/stripe'
+import { getStripeClient, StripeConfigError } from '@/lib/stripe'
 import { getPaymentProvider, isPaymentMethod } from '@/lib/payments'
 
 type CheckoutItemInput = { menuItemId: number; quantity: number }
@@ -12,6 +12,15 @@ type CheckoutBody = {
   pickupDate?: string | null
   pickupTime?: number | null
   paymentMethod?: string
+}
+
+// GET /api/checkout — medios de pago disponibles según el proveedor configurado
+export async function GET() {
+  const provider = getPaymentProvider()
+  return NextResponse.json({
+    provider,
+    methods: provider === 'stripe' ? ['card', 'balance'] : ['card', 'wallet', 'balance'],
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -107,8 +116,8 @@ export async function POST(req: NextRequest) {
   }
 
   const provider = getPaymentProvider()
-  if (provider === 'stripe' && paymentMethod !== 'card') {
-    return NextResponse.json({ error: 'Con Stripe solo se puede pagar con tarjeta.' }, { status: 400 })
+  if (provider === 'stripe' && paymentMethod === 'wallet') {
+    return NextResponse.json({ error: 'Elige tarjeta o saldo institucional.' }, { status: 400 })
   }
 
   const attempt = await prisma.paymentAttempt.create({
@@ -121,8 +130,8 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // ── Pasarela simulada (por defecto) ─────────────────────────────
-  if (provider === 'simulated') {
+  // ── Saldo institucional o pasarela simulada: confirmación dentro de la app ──
+  if (provider === 'simulated' || paymentMethod === 'balance') {
     const reference = `sim_${attempt.id}`
     await prisma.paymentAttempt.update({
       where: { id: attempt.id },
@@ -131,21 +140,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: `/pago/${attempt.id}`, sessionId: reference })
   }
 
-  // ── Stripe Checkout (PAYMENT_PROVIDER="stripe") ─────────────────
+  // ── Tarjeta: Stripe Checkout ────────────────────────────────────
   let stripe: ReturnType<typeof getStripeClient>
   try {
     stripe = getStripeClient()
   } catch (error) {
-    console.error('Stripe test configuration error:', error)
+    console.error('Configuración de Stripe:', error instanceof Error ? error.message : error)
     await prisma.paymentAttempt.update({ where: { id: attempt.id }, data: { status: 'failed' } })
-    return NextResponse.json({ error: 'El pago con tarjeta no está disponible en este momento.' }, { status: 503 })
+    return NextResponse.json({
+      error: error instanceof StripeConfigError ? error.message : 'El pago con tarjeta no está disponible en este momento.',
+    }, { status: 503 })
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL
-  if (!baseUrl) {
-    await prisma.paymentAttempt.update({ where: { id: attempt.id }, data: { status: 'failed' } })
-    return NextResponse.json({ error: 'Falta configurar NEXTAUTH_URL para iniciar el pago.' }, { status: 503 })
-  }
+  // Stripe devuelve al estudiante a la MISMA dirección desde la que abrió la app
+  // (localhost, la IP de la red o el dominio publicado), para que conserve su sesión.
+  const requestOrigin = req.headers.get('origin')
+  const baseUrl = (requestOrigin && /^https?:\/\/[^/\s]+$/.test(requestOrigin) ? requestOrigin : null)
+    || process.env.NEXTAUTH_URL
+    || req.nextUrl.origin
 
   try {
     const checkout = await stripe.checkout.sessions.create(
@@ -182,6 +194,11 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Unable to create Stripe Checkout session:', error)
     await prisma.paymentAttempt.update({ where: { id: attempt.id }, data: { status: 'failed' } })
-    return NextResponse.json({ error: 'No se pudo iniciar el pago. Inténtalo de nuevo.' }, { status: 502 })
+    const stripeType = (error as { type?: string }).type
+    return NextResponse.json({
+      error: stripeType === 'StripeAuthenticationError'
+        ? 'Stripe rechazó la clave STRIPE_SECRET_KEY. Revisa que sea tu clave secreta de pruebas completa (sk_test_...).'
+        : 'No se pudo conectar con Stripe. Inténtalo de nuevo.',
+    }, { status: 502 })
   }
 }

@@ -94,7 +94,12 @@ export default function Page() {
         role={session.user.role as 'admin' | 'kitchen' | 'student'}
         userName={session.user.name}
         email={session.user.email}
-        onLogout={() => signOut({ callbackUrl: '/' })}
+        onLogout={async () => {
+          // Cierra la sesión sin redirigir a NEXTAUTH_URL: así funciona igual desde
+          // localhost, desde la IP de la red (celular) o desde el dominio publicado.
+          await signOut({ redirect: false })
+          window.location.replace('/')
+        }}
       />
     )
   }

@@ -29,11 +29,17 @@ Desde el carrito, el estudiante puede revisar productos, cantidades y total, y p
 - El estudiante lo configura en **Mi cuenta** (toca su avatar). El celular también se puede dar al registrarse.
 - En iPhone, el push solo funciona si la app está agregada a la pantalla de inicio (iOS 16.4+). La app incluye manifest e íconos para instalarla.
 
-### Pagos (pasarela simulada)
-- En el checkout el estudiante elige **Tarjeta**, **Billetera digital** o **Saldo institucional** y pulsa **Pagar**.
-- Va a la pasarela de demostración `/pago/[id]` (sin cobros reales). Tarjeta de prueba que aprueba: `4242 4242 4242 4242`; que rechaza: `4000 0000 0000 0002`. Billetera: cualquier celular que empiece por 3 y clave de 4 dígitos.
-- El saldo institucional se descuenta del usuario y se reembolsa si el pedido se cancela.
-- Para volver a Stripe: `PAYMENT_PROVIDER="stripe"` en `.env` (solo tarjeta).
+### Despliegue (Vercel + Neon)
+- En local la app usa SQLite (`dev.db`). En la nube usa PostgreSQL (Neon): `npm run vercel-build` genera `prisma/postgres/schema.prisma`, crea las tablas con `prisma db push`, carga los usuarios de prueba y compila.
+- Variables de entorno en Vercel: `DATABASE_URL` y `DATABASE_URL_UNPOOLED` (las crea la integración de Neon), `AUTH_SECRET`, `AUTH_TRUST_HOST=true`, `STRIPE_SECRET_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` y `SMS_PROVIDER=console`.
+- Con https la app se puede instalar en el celular (Agregar a pantalla de inicio) y recibe notificaciones push.
+
+### Pagos (Stripe)
+- En el checkout el estudiante elige **Tarjeta** o **Saldo institucional** y pulsa **Pagar**.
+- **Tarjeta:** se paga en Stripe Checkout (modo de pruebas). Al volver, la app confirma el pago con la API de Stripe y registra el pedido; el webhook es opcional en local.
+- **Saldo institucional:** se descuenta dentro de la app sin pasar por Stripe, y se reembolsa si el pedido se cancela.
+- Configuración: copia tu clave secreta de pruebas desde Stripe Dashboard → Developers → API keys a `STRIPE_SECRET_KEY` (empieza por `sk_test_`). Tarjeta de prueba: `4242 4242 4242 4242`, fecha futura y cualquier CVC.
+- Sin cuenta de Stripe: pon `PAYMENT_PROVIDER="simulated"` para usar la pasarela de demostración propia (`/pago/[id]`).
 
 ### Menú del día y stock (cocina y admin)
 - Sección **Menú** para cocina y administración: agregar, editar, ocultar o eliminar platos y fijar las unidades disponibles hoy (`stock`; vacío = sin límite).

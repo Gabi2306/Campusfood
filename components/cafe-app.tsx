@@ -103,6 +103,8 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
   const [paymentNotice, setPaymentNotice] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet' | 'balance'>('card')
   const [balance, setBalance] = useState<number | null>(null)
+  const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'simulated'>('stripe')
+  const [availableMethods, setAvailableMethods] = useState<string[]>(['card', 'balance'])
   const cartStorageKey = `campusfood:cart:${email ?? ''}`
   const pendingPaymentStorageKey = `campusfood:pending-payment:${email ?? ''}`
 
@@ -153,6 +155,17 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
       .catch(() => undefined)
   }, [])
   useEffect(() => { fetchBalance() }, [fetchBalance, studentSection, isCheckout])
+
+  useEffect(() => {
+    fetch('/api/checkout', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((config: { provider: 'stripe' | 'simulated'; methods: string[] } | null) => {
+        if (!config) return
+        setPaymentProvider(config.provider)
+        setAvailableMethods(config.methods)
+      })
+      .catch(() => undefined)
+  }, [])
 
   // El menú se refresca cada 30 s para reflejar cambios de cocina (stock, agotados, nuevos platos).
   useEffect(() => {
@@ -543,14 +556,14 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
                     </div>
                     <div className="method-list" role="radiogroup" aria-label="Medio de pago">
                       {([
-                        { id: 'card', label: 'Tarjeta', detail: 'Débito o crédito', icon: <CreditCard size={19} /> },
+                        { id: 'card', label: 'Tarjeta', detail: paymentProvider === 'stripe' ? 'Débito o crédito · pago seguro con Stripe' : 'Débito o crédito', icon: <CreditCard size={19} /> },
                         { id: 'wallet', label: 'Billetera digital', detail: 'Paga desde tu celular', icon: <Smartphone size={19} /> },
                         {
                           id: 'balance', label: 'Saldo institucional',
                           detail: balance == null ? 'Consultando saldo…' : balance >= total ? `Disponible: ${money(balance)}` : `Saldo insuficiente (${money(balance)})`,
                           icon: <Wallet size={19} />,
                         },
-                      ] as const).map((method) => {
+                      ] as const).filter((method) => availableMethods.includes(method.id)).map((method) => {
                         const disabled = method.id === 'balance' && (balance == null || balance < total)
                         const selected = paymentMethod === method.id
                         return (
