@@ -3870,3 +3870,26 @@ a.outline-button {
   .gateway-main { padding-top: 40px; }
   .gateway-card { padding: 26px; }
 }
+
+/* Aviso con botón de cerrar */
+.payment-notice .notice-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #526e54;
+}
+
+.notice-close:hover {
+  background: #e2eedf;
+}

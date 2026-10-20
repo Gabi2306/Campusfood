@@ -6,7 +6,7 @@ import {
   BarChart3, BellRing, Check, ChefHat, ChevronRight, Clock3, Coffee, CreditCard, Database, Ellipsis, FileText,
   History, House, LayoutDashboard, LogOut, Menu, Pencil, Plus, Search,
   ShoppingBag, Smartphone, Target, Trash2, TrendingUp, Users, Wallet,
-  RefreshCw, AlertCircle,
+  RefreshCw, AlertCircle, X,
 } from 'lucide-react'
 import {
   Brand, Sheet, STATUS_CLASS, STATUS_LABEL, formatDateTime, formatPickupAt, iconNode, money,
@@ -62,6 +62,29 @@ function canStudentCancelScheduledOrder(order: Pick<OrderRecord, 'status' | 'pic
   )
 }
 
+// Aviso temporal: los de resultado se cierran solos; los de "en proceso" esperan al resultado.
+const NOTICE_TIMEOUT_MS = 7_000
+const isPendingNotice = (message: string) => /confirmando|verificando/i.test(message)
+
+function Notice({ message, onClose, icon }: { message: string; onClose: () => void; icon?: React.ReactNode }) {
+  useEffect(() => {
+    if (!message || isPendingNotice(message)) return
+    const timeout = window.setTimeout(onClose, NOTICE_TIMEOUT_MS)
+    return () => window.clearTimeout(timeout)
+  }, [message, onClose])
+
+  if (!message) return null
+  return (
+    <p className="payment-notice" role="status">
+      {icon}
+      <span className="notice-text">{message}</span>
+      {!isPendingNotice(message) && (
+        <button className="notice-close" onClick={onClose} aria-label="Cerrar aviso"><X size={15} /></button>
+      )}
+    </p>
+  )
+}
+
 function AccountSheet({
   open, onClose, userName, email, roleLabel, onLogout, showNotifications,
 }: {
@@ -101,6 +124,7 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
   const [isStartingPayment, setIsStartingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState('')
   const [paymentNotice, setPaymentNotice] = useState('')
+  const clearPaymentNotice = useCallback(() => setPaymentNotice(''), [])
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet' | 'balance'>('card')
   const [balance, setBalance] = useState<number | null>(null)
   const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'simulated'>('stripe')
@@ -424,7 +448,7 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
       />
 
       <main className="student-main">
-        {paymentNotice && <p className="payment-notice" role="status">{paymentNotice}</p>}
+        <Notice message={paymentNotice} onClose={clearPaymentNotice} />
         {isCheckout ? (
           <section className="checkout-view">
             <button className="checkout-back" onClick={() => setIsCheckout(false)}>
@@ -874,6 +898,7 @@ function StaffView({ role, userName, email, onLogout }: { role: StaffRole; userN
   const [ordersError, setOrdersError] = useState('')
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
   const [orderNotice, setOrderNotice] = useState('')
+  const clearOrderNotice = useCallback(() => setOrderNotice(''), [])
 
   // ── Modales ───────────────────────────────────────────────────
   const [editing, setEditing]     = useState<MenuItem | null>(null)
@@ -1309,7 +1334,7 @@ function StaffView({ role, userName, email, onLogout }: { role: StaffRole; userN
               </button>
             </div>
             {ordersError && <p className="orders-error" role="alert">{ordersError}</p>}
-            {orderNotice && <p className="payment-notice" role="status"><BellRing size={13} /> {orderNotice}</p>}
+            <Notice message={orderNotice} onClose={clearOrderNotice} icon={<BellRing size={13} />} />
             {ordersLoading && activeOrders.length === 0
               ? <div className="loading-state"><RefreshCw size={18} className="spin" /><span>Cargando pedidos...</span></div>
               : !activeOrders.length
