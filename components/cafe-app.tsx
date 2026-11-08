@@ -15,6 +15,7 @@ import {
 import { NotificationBell, NotificationSettings } from '@/components/notifications'
 import ProjectionsPanel from '@/components/projections-panel'
 import HistoryPanel from '@/components/history-panel'
+import ProfileForm from '@/components/profile-form'
 
 // ── Tipos ────────────────────────────────────────────────────────
 type OrderItem = { name: string; quantity: number }
@@ -86,14 +87,15 @@ function Notice({ message, onClose, icon }: { message: string; onClose: () => vo
 }
 
 function AccountSheet({
-  open, onClose, userName, email, roleLabel, onLogout, showNotifications,
+  open, onClose, userName, email, roleLabel, onLogout, showNotifications, showProfile,
 }: {
   open: boolean; onClose: () => void; userName: string; email: string; roleLabel: string
-  onLogout: () => void; showNotifications: boolean
+  onLogout: () => void; showNotifications: boolean; showProfile?: boolean
 }) {
   return (
     <Sheet open={open} onClose={onClose} eyebrow="MI CUENTA" title={userName} className="account-sheet">
       <p className="sheet-subtitle">{email} · {roleLabel}</p>
+      {showProfile && <ProfileForm />}
       {showNotifications && <NotificationSettings />}
       <button className="logout-button" onClick={onLogout}><LogOut size={16} /> Cerrar sesión</button>
     </Sheet>
@@ -445,6 +447,7 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
         roleLabel="Estudiante"
         onLogout={onLogout}
         showNotifications
+        showProfile
       />
 
       <main className="student-main">
@@ -744,7 +747,7 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
           </>
         ) : (
           <section className="student-orders-panel">
-            <div className="section-heading">
+              <div className="section-heading">
               <div>
                 <p className="eyebrow">{studentSection === 'orders' ? 'SEGUIMIENTO' : 'PEDIDOS ANTERIORES'}</p>
                 <h1>{studentSection === 'orders' ? 'Mis pedidos' : 'Historial de pedidos'}</h1>

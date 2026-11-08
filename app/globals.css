@@ -3893,3 +3893,234 @@ a.outline-button {
 .notice-close:hover {
   background: #e2eedf;
 }
+
+/* ── RF-11: ProfileForm ─────────────────────────────────────── */
+.profile-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.profile-section-label {
+  color: var(--terracotta);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  margin: 0;
+}
+
+.profile-field {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #657169;
+}
+
+.profile-field span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.profile-field input {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.profile-field input:focus {
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px #c86f5518;
+}
+
+.profile-field input:disabled {
+  background: #f5f5f2;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.profile-sms-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.profile-sms-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--terracotta);
+  cursor: pointer;
+}
+
+.profile-sms-toggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.profile-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #e7f0e5;
+  color: #608364;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.profile-save-btn {
+  width: 100%;
+  padding: 11px;
+  font-size: 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 7px;
+}
+
+/* ── RF-12: StudentOrderHistory ─────────────────────────────── */
+.student-history-view {
+  display: grid;
+  gap: 16px;
+}
+
+.student-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.student-history-header h2 {
+  font-size: 18px;
+  margin: 0 0 5px;
+  letter-spacing: -0.4px;
+}
+
+.student-history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.student-history-empty {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.student-history-empty p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.student-history-empty span {
+  font-size: 11px;
+  max-width: 200px;
+  line-height: 1.5;
+}
+
+.student-order-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.student-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-order-meta {
+  display: grid;
+  gap: 3px;
+}
+
+.student-order-id {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.student-order-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.student-order-status {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.student-order-items {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f1ed;
+  border-bottom: 1px solid #f0f1ed;
+}
+
+.student-order-item-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.student-order-item-row span:first-child {
+  color: var(--muted);
+  font-weight: 700;
+  min-width: 20px;
+}
+
+.student-order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.student-order-pickup {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.student-order-total {
+  font-size: 14px;
+  color: var(--terracotta);
+}

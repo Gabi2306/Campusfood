@@ -167,14 +167,54 @@ En plataformas como Vercel o Netlify, configura las Environment Variables en el 
 
 Recomendación: usar una base de datos real (Postgres) en producción y actualizar `prisma/schema.prisma` si cambia el proveedor.
 
+## RF-11 · Perfil editable del estudiante
+
+El estudiante puede editar su nombre completo y número de celular directamente desde la app, sin necesidad de contactar a un administrador.
+
+**Cómo usarlo:** toca tu avatar (esquina superior derecha) → sección *Datos personales* dentro de la hoja de cuenta.
+
+**Qué se puede cambiar:**
+- Nombre completo
+- Celular (formato colombiano, ej. `300 123 4567`) — usado para recibir SMS cuando el pedido esté listo
+- Activar o desactivar notificaciones SMS (requiere celular registrado)
+
+**API:** `GET /api/profile` y `PATCH /api/profile` — solo accesible para el usuario autenticado.  
+**Componente:** `components/profile-form.tsx`
+
+---
+
+## RF-12 · Historial de pedidos del estudiante
+
+El estudiante puede consultar todos sus pedidos anteriores (entregados y cancelados) en la pestaña **Historial** de la barra de navegación.
+
+**Cómo usarlo:** barra inferior (móvil) o barra superior → *Historial*.
+
+**Qué muestra por cada pedido:**
+- Número de pedido, fecha y hora
+- Lista de productos con cantidades
+- Hora de recogida programada (si aplica)
+- Estado final (Entregado ✅ o Cancelado ❌)
+- Total pagado
+
+**API:** `GET /api/orders` — devuelve los pedidos del usuario autenticado; el frontend filtra los finalizados para el historial y los activos para *Mis pedidos*.  
+**Componente:** `components/student-order-history.tsx`
+
+---
+
 ## Estructura del proyecto (resumen)
 
 - `app/` — páginas y rutas de la App Router.
-- `app/api/` — endpoints API (incluye `auth` y `menu`).
-- `components/` — componentes React reutilizables.
-- `lib/prisma.ts` — cliente Prisma compartido.
-- `prisma/` — esquema y seed.
-- `README.md` — este archivo.
+- `app/api/` — endpoints API (auth, menu, orders, profile, checkout, history, notifications, projections).
+- `components/cafe-app.tsx` — vista principal (estudiante y admin/cocina).
+- `components/profile-form.tsx` — formulario editable de perfil del estudiante (RF-11).
+- `components/student-order-history.tsx` — historial de pedidos del estudiante (RF-12).
+- `components/history-panel.tsx` — histórico de demanda para admin/cocina (HU-09).
+- `components/projections-panel.tsx` — proyecciones de demanda para cocina (HU-06).
+- `components/notifications.tsx` — configuración y campana de notificaciones (HU-04).
+- `components/shared.tsx` — tipos, helpers y componentes compartidos.
+- `lib/prisma.ts` — cliente Prisma singleton.
+- `lib/` — lógica de negocio: pagos, proyecciones, notificaciones, historial, etc.
+- `prisma/` — schema, migraciones y seed.
 
 ## Contribuir
 
