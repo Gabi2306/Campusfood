@@ -52,7 +52,7 @@ export type CategoryProjection = {
   items: ItemProjection[]
 }
 
-function weightedStats(values: number[], decay: number) {
+export function weightedStats(values: number[], decay: number) {
   if (!values.length) return { mean: 0, std: 0 }
   let weightSum = 0
   let sum = 0
@@ -71,7 +71,7 @@ function weightedStats(values: number[], decay: number) {
 
 const average = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0
 
-function confidenceFor(samples: number, mean: number, std: number): Confidence {
+export function confidenceFor(samples: number, mean: number, std: number): Confidence {
   const cv = mean > 0 ? std / mean : 1
   if (samples >= 6 && cv <= 0.35) return 'alta'
   if (samples >= 3) return 'media'

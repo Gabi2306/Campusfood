@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "tsx --test tests/business-date.test.ts tests/menu-input.test.ts tests/order-history-filters.test.ts tests/payments.test.ts tests/phone.test.ts tests/pickup-time.test.ts tests/profile-input.test.ts tests/projections.test.ts",
+    "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "push:keys": "web-push generate-vapid-keys",
-    "vercel-build": "node scripts/prepare-postgres.mjs && prisma generate --schema prisma/postgres/schema.prisma && prisma db push --schema prisma/postgres/schema.prisma --skip-generate && tsx prisma/seed.ts && next build"
+    "vercel-build": "npm test && node scripts/prepare-postgres.mjs && prisma generate --schema prisma/postgres/schema.prisma && prisma db push --schema prisma/postgres/schema.prisma --skip-generate && tsx prisma/seed.ts && next build"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",

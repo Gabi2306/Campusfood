@@ -167,37 +167,40 @@ En plataformas como Vercel o Netlify, configura las Environment Variables en el 
 
 Recomendación: usar una base de datos real (Postgres) en producción y actualizar `prisma/schema.prisma` si cambia el proveedor.
 
-## RF-11 · Perfil editable del estudiante
+## Versión 2.0 — novedades
 
-El estudiante puede editar su nombre completo y número de celular directamente desde la app, sin necesidad de contactar a un administrador.
+Las notas de versión completas están en [`CHANGELOG.md`](CHANGELOG.md).
 
-**Cómo usarlo:** toca tu avatar (esquina superior derecha) → sección *Datos personales* dentro de la hoja de cuenta.
+### HU-11 · Filtros del historial de pedidos (fecha y estado)
 
-**Qué se puede cambiar:**
-- Nombre completo
-- Celular (formato colombiano, ej. `300 123 4567`) — usado para recibir SMS cuando el pedido esté listo
-- Activar o desactivar notificaciones SMS (requiere celular registrado)
+La pestaña **Historial** muestra los pedidos entregados y cancelados del estudiante (número, fecha, productos, hora de recogida, estado y total) y permite filtrarlos:
 
-**API:** `GET /api/profile` y `PATCH /api/profile` — solo accesible para el usuario autenticado.  
-**Componente:** `components/profile-form.tsx`
+- **Estado:** Todos, Entregados o Cancelados.
+- **Fecha:** desde y hasta (días completos en hora de Bogotá; se puede usar solo una de las dos).
+- **Limpiar filtros** vuelve a mostrar todo el historial.
 
----
+**API:** `GET /api/orders?history=1&status=delivered|cancelled&from=AAAA-MM-DD&to=AAAA-MM-DD` — solo devuelve pedidos del estudiante autenticado; responde `400` si el estado o las fechas no son válidos o si "desde" es posterior a "hasta".
+**Código:** `lib/order-history-filters.ts` (validación y consulta), `components/student-order-history.tsx` (interfaz).
+**Pruebas:** `tests/order-history-filters.test.ts`.
 
-## RF-12 · Historial de pedidos del estudiante
+### HU-12 · Integración y despliegue continuos (CI/CD)
 
-El estudiante puede consultar todos sus pedidos anteriores (entregados y cancelados) en la pestaña **Historial** de la barra de navegación.
+- **GitHub Actions** (`.github/workflows/ci.yml`): en cada push o pull request a `main` instala dependencias, genera Prisma, ejecuta `npm test`, verifica tipos (`npm run typecheck`), aplica las migraciones sobre una base limpia y compila (`npm run build`). El resultado se ve en la pestaña *Actions* del repositorio.
+- **Despliegue en Vercel:** `npm run vercel-build` ejecuta primero `npm test`; si una prueba falla, el despliegue se detiene y la versión publicada no cambia.
 
-**Cómo usarlo:** barra inferior (móvil) o barra superior → *Historial*.
+### HU-13 · Perfil editable del estudiante
 
-**Qué muestra por cada pedido:**
-- Número de pedido, fecha y hora
-- Lista de productos con cantidades
-- Hora de recogida programada (si aplica)
-- Estado final (Entregado ✅ o Cancelado ❌)
-- Total pagado
+El estudiante edita su **nombre completo** desde *Mi cuenta* (toca tu avatar, arriba a la derecha). El nombre se valida (3 a 80 caracteres, solo letras) y se actualiza de inmediato en el encabezado sin volver a iniciar sesión. El celular y los avisos por SMS se configuran en la misma hoja, en *Avisos de pedido listo*.
 
-**API:** `GET /api/orders` — devuelve los pedidos del usuario autenticado; el frontend filtra los finalizados para el historial y los activos para *Mis pedidos*.  
-**Componente:** `components/student-order-history.tsx`
+**API:** `GET /api/profile` y `PATCH /api/profile` (`name`, `phone`, `smsOptIn`) — solo para el usuario autenticado.
+**Código:** `lib/profile-input.ts`, `components/profile-form.tsx`. **Pruebas:** `tests/profile-input.test.ts`.
+
+## Pruebas
+
+```bash
+npm test          # 8 suites, 49 pruebas (unitarias y de regresión de la v1.0)
+npm run typecheck # verificación de tipos
+```
 
 ---
 
@@ -206,8 +209,11 @@ El estudiante puede consultar todos sus pedidos anteriores (entregados y cancela
 - `app/` — páginas y rutas de la App Router.
 - `app/api/` — endpoints API (auth, menu, orders, profile, checkout, history, notifications, projections).
 - `components/cafe-app.tsx` — vista principal (estudiante y admin/cocina).
-- `components/profile-form.tsx` — formulario editable de perfil del estudiante (RF-11).
-- `components/student-order-history.tsx` — historial de pedidos del estudiante (RF-12).
+- `components/profile-form.tsx` — formulario editable de perfil del estudiante (HU-13).
+- `lib/order-history-filters.ts` — filtros del historial por fecha y estado (HU-11).
+- `.github/workflows/ci.yml` — pipeline de integración continua (HU-12).
+- `tests/` — pruebas automatizadas (`npm test`).
+- `components/student-order-history.tsx` — historial de pedidos del estudiante con filtros (HU-11).
 - `components/history-panel.tsx` — histórico de demanda para admin/cocina (HU-09).
 - `components/projections-panel.tsx` — proyecciones de demanda para cocina (HU-06).
 - `components/notifications.tsx` — configuración y campana de notificaciones (HU-04).

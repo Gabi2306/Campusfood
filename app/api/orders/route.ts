@@ -1,15 +1,32 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { isStaff } from '@/lib/roles'
 import { reconcileStripeCheckout } from '@/lib/stripe-orders'
+import { buildHistoryWhere, HISTORY_LIMIT, parseHistoryFilters } from '@/lib/order-history-filters'
 
 // GET /api/orders — pedidos del usuario actual (o todos si es personal: admin / cocina)
-export async function GET() {
+// GET /api/orders?history=1&status=&from=&to= — historial filtrado del estudiante (HU-11)
+export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const isAdmin = isStaff(session.user.role)
+
+  if (!isAdmin && req.nextUrl.searchParams.has('history')) {
+    const parsed = parseHistoryFilters(req.nextUrl.searchParams)
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+    const history = await prisma.order.findMany({
+      where: buildHistoryWhere(Number(session.user.id), parsed.filters),
+      include: {
+        items: { include: { menuItem: true } },
+        user:  { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    })
+    return NextResponse.json(history, { headers: { 'Cache-Control': 'no-store' } })
+  }
   let reconciliationFailures = 0
   if (isAdmin) {
     const reconciliationStart = new Date(Date.now() - 24 * 60 * 60 * 1000)

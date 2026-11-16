@@ -3894,7 +3894,7 @@ a.outline-button {
   background: #e2eedf;
 }
 
-/* ── RF-11: ProfileForm ─────────────────────────────────────── */
+/* ── HU-13: ProfileForm ─────────────────────────────────────── */
 .profile-loading {
   display: flex;
   align-items: center;
@@ -3999,7 +3999,7 @@ a.outline-button {
   gap: 7px;
 }
 
-/* ── RF-12: StudentOrderHistory ─────────────────────────────── */
+/* ── HU-11: StudentOrderHistory ─────────────────────────────── */
 .student-history-view {
   display: grid;
   gap: 16px;
@@ -4123,4 +4123,92 @@ a.outline-button {
 .student-order-total {
   font-size: 14px;
   color: var(--terracotta);
+}
+
+/* ── HU-11: filtros del historial por fecha y estado ─────────────── */
+.history-filters {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 6px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.history-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.history-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-chip {
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.history-chip-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.history-chip:focus-visible,
+.history-dates input:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 2px;
+}
+
+.history-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.history-dates label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.history-dates input {
+  min-width: 140px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.history-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+}
+
+.history-count {
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--muted);
 }

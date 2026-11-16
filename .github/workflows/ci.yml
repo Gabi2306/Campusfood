@@ -1,0 +1,53 @@
+# HU-12 — Integración y despliegue continuos (CI/CD)
+# Cada push o pull request a main ejecuta las pruebas, la verificación de tipos y el build.
+# El despliegue a Vercel (npm run vercel-build) vuelve a ejecutar las pruebas y se detiene si alguna falla.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Pruebas, tipos y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: file:./ci.db
+      AUTH_SECRET: ci-only-secret-not-used-in-production
+      AUTH_TRUST_HOST: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar el cliente de Prisma
+        run: npx prisma generate
+
+      - name: Pruebas unitarias y de regresión
+        run: npm test
+
+      - name: Verificación de tipos (TypeScript)
+        run: npm run typecheck
+
+      - name: Migraciones sobre una base de datos limpia
+        run: npx prisma migrate deploy
+
+      - name: Build de producción
+        run: npm run build

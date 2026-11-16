@@ -78,7 +78,8 @@ export default function Page() {
     setTimeout(() => switchView('login'), 2000)
   }
 
-  if (status === 'loading') {
+  // Solo en la carga inicial: al refrescar la sesión (p. ej. al editar el perfil) la app no se desmonta.
+  if (status === 'loading' && !session) {
     return (
       <div className="auth-shell">
         <div className="auth-card" style={{ textAlign: 'center', color: 'var(--muted)' }}>

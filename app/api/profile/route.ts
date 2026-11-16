@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizePhone } from '@/lib/phone'
+import { validateProfileName } from '@/lib/profile-input'
 
 // GET /api/profile — datos de contacto para notificaciones.
 export async function GET() {
@@ -15,19 +16,28 @@ export async function GET() {
   return NextResponse.json(user, { headers: { 'Cache-Control': 'no-store' } })
 }
 
-// PATCH /api/profile — { phone?: string | null, smsOptIn?: boolean }
+// PATCH /api/profile — { name?: string, phone?: string | null, smsOptIn?: boolean }
 export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  let body: { phone?: unknown; smsOptIn?: unknown }
+  let body: { name?: unknown; phone?: unknown; smsOptIn?: unknown }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'La solicitud no es válida.' }, { status: 400 })
   }
 
-  const data: { phone?: string | null; smsOptIn?: boolean } = {}
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'La solicitud no es válida.' }, { status: 400 })
+  }
+
+  const data: { name?: string; phone?: string | null; smsOptIn?: boolean } = {}
+  if (body.name !== undefined) {
+    const name = validateProfileName(body.name)
+    if (!name.ok) return NextResponse.json({ error: name.error }, { status: 400 })
+    data.name = name.value
+  }
   if (body.phone !== undefined) {
     if (body.phone === null || body.phone === '') {
       data.phone = null

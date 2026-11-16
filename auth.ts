@@ -36,10 +36,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id   = user.id
         token.role = (user as { role: string }).role
+      }
+      // HU-13: al editar el perfil, el cliente llama a update() y el nombre se relee de la base de datos.
+      if (trigger === 'update' && token.id) {
+        const fresh = await prisma.user.findUnique({ where: { id: Number(token.id) }, select: { name: true } })
+        if (fresh) token.name = fresh.name
       }
       return token
     },

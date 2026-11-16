@@ -16,6 +16,7 @@ import { NotificationBell, NotificationSettings } from '@/components/notificatio
 import ProjectionsPanel from '@/components/projections-panel'
 import HistoryPanel from '@/components/history-panel'
 import ProfileForm from '@/components/profile-form'
+import StudentOrderHistory from '@/components/student-order-history'
 
 // ── Tipos ────────────────────────────────────────────────────────
 type OrderItem = { name: string; quantity: number }
@@ -745,9 +746,13 @@ function StudentView({ userName, email, onLogout }: { userName: string; email: s
               </aside>
             </div>
           </>
+        ) : studentSection === 'history' ? (
+          <section className="student-orders-panel">
+            <StudentOrderHistory />
+          </section>
         ) : (
           <section className="student-orders-panel">
-              <div className="section-heading">
+            <div className="section-heading">
               <div>
                 <p className="eyebrow">{studentSection === 'orders' ? 'SEGUIMIENTO' : 'PEDIDOS ANTERIORES'}</p>
                 <h1>{studentSection === 'orders' ? 'Mis pedidos' : 'Historial de pedidos'}</h1>

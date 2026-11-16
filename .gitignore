@@ -20,3 +20,8 @@ next-env.d.ts
 
 # Sistema operativo
 .DS_Store
+tsconfig.tsbuildinfo
+
+# Base de datos del pipeline de CI
+ci.db
+prisma/ci.db
