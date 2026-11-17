@@ -167,6 +167,10 @@ En plataformas como Vercel o Netlify, configura las Environment Variables en el 
 
 Recomendación: usar una base de datos real (Postgres) en producción y actualizar `prisma/schema.prisma` si cambia el proveedor.
 
+## Video demostrativo
+
+Sustentación del momento 3: [video/CampusFood_Sustentacion_M3.mp4](video/CampusFood_Sustentacion_M3.mp4)
+
 ## Versión 2.0 — novedades
 
 Las notas de versión completas están en [`CHANGELOG.md`](CHANGELOG.md).
